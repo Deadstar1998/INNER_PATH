@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+env:
+  PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: "0"
+
 jobs:
   build-android:
     runs-on: ubuntu-latest
@@ -14,19 +17,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Linux dependencies
         run: |
           sudo apt update
           sudo apt install -y \
-            git zip unzip openjdk-17-jdk python3-pip python3-virtualenv \
-            autoconf libtool pkg-config zlib1g-dev \
-            libncurses5-dev libncursesw5-dev libtinfo6 cmake \
-            libffi-dev libssl-dev automake autopoint gettext
+            git zip unzip \
+            autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libtinfo6 cmake libffi-dev libssl-dev \
+            automake autopoint gettext
 
       - name: Install Buildozer
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install buildozer cython==0.29.34
+          python -m pip install --upgrade pip
+          python -m pip install buildozer
+
+      - name: Accept Android SDK licenses
+        run: |
+          sed -i 's/^# *android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
+
+      - name: Prepare Android SDK
+        run: |
+          buildozer android p4a -- --help
 
       - name: Build APK
         run: |
